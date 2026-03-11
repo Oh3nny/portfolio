@@ -35,6 +35,7 @@ export default function ChatWindow({
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [scale, setScale] = useState(1);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -62,7 +63,16 @@ export default function ChatWindow({
 
   useEffect(() => {
     if (fullScreen) {
-      return;
+      const updateLayoutMode = () => {
+        setIsMobileLayout(window.innerWidth < 768);
+      };
+
+      updateLayoutMode();
+      window.addEventListener("resize", updateLayoutMode);
+
+      return () => {
+        window.removeEventListener("resize", updateLayoutMode);
+      };
     }
 
     const updateScale = () => {
@@ -80,6 +90,7 @@ export default function ChatWindow({
 
     updateScale();
     window.addEventListener("resize", updateScale);
+    setIsMobileLayout(false);
 
     return () => {
       window.removeEventListener("resize", updateScale);
@@ -173,6 +184,36 @@ export default function ChatWindow({
     }
   };
 
+  const mobileSidebarHeight = "176px";
+  const fullScreenSidebarWidth = isMobileLayout
+    ? "100%"
+    : "clamp(180px, 26.35vw, 289px)";
+  const contentLeft = fullScreen
+    ? isMobileLayout
+      ? 0
+      : "clamp(180px, 26.35vw, 289px)"
+    : 301;
+  const contentTop = fullScreen
+    ? isMobileLayout
+      ? mobileSidebarHeight
+      : 0
+    : CHAT_WINDOW.padding;
+  const contentWidth = fullScreen
+    ? isMobileLayout
+      ? "100%"
+      : "calc(100vw - clamp(180px, 26.35vw, 289px))"
+    : CHAT_WINDOW.contentWidth;
+  const contentHeight = fullScreen
+    ? isMobileLayout
+      ? `calc(100% - ${mobileSidebarHeight})`
+      : "100%"
+    : CHAT_WINDOW.contentHeight;
+  const contentBorderRadius = isMobileLayout
+    ? "24px 24px 0 0"
+    : fullScreen
+      ? 0
+      : 23;
+
   const chatFrame = (
     <div
       className="relative"
@@ -198,13 +239,18 @@ export default function ChatWindow({
           style={{
             left: fullScreen ? 0 : CHAT_WINDOW.padding,
             top: fullScreen ? 0 : CHAT_WINDOW.padding,
-            width: fullScreen ? "clamp(180px, 26.35vw, 289px)" : CHAT_WINDOW.sidebarWidth,
-            height: fullScreen ? "100%" : CHAT_WINDOW.sidebarHeight,
+            width: fullScreen ? fullScreenSidebarWidth : CHAT_WINDOW.sidebarWidth,
+            height: fullScreen
+              ? isMobileLayout
+                ? mobileSidebarHeight
+                : "100%"
+              : CHAT_WINDOW.sidebarHeight,
           }}
         >
           <ChatSidebar
             onClose={onClose}
             fullScreen={fullScreen}
+            mobileLayout={isMobileLayout}
             previewMessage={sidebarPreviewMessage}
             timeLabel={sidebarTimeLabel}
             isThinking={showTypingState}
@@ -216,11 +262,11 @@ export default function ChatWindow({
         <div
           className="absolute overflow-hidden"
           style={{
-            left: fullScreen ? "clamp(180px, 26.35vw, 289px)" : 301,
-            top: fullScreen ? 0 : CHAT_WINDOW.padding,
-            width: fullScreen ? "calc(100vw - clamp(180px, 26.35vw, 289px))" : CHAT_WINDOW.contentWidth,
-            height: fullScreen ? "100%" : CHAT_WINDOW.contentHeight,
-            borderRadius: fullScreen ? 0 : 23,
+            left: contentLeft,
+            top: contentTop,
+            width: contentWidth,
+            height: contentHeight,
+            borderRadius: contentBorderRadius,
             background: "#1A1A1A",
           }}
         >
@@ -228,6 +274,7 @@ export default function ChatWindow({
             messages={messages}
             showTypingBubble={showTypingState}
             fullScreen={fullScreen}
+            mobileLayout={isMobileLayout}
             dayTimeLabel={dayTimeLabel}
             searchQuery={deferredSearchQuery}
           />
@@ -235,6 +282,7 @@ export default function ChatWindow({
             onSend={handleSend}
             disabled={isLoading}
             fullScreen={fullScreen}
+            mobileLayout={isMobileLayout}
           />
         </div>
       </section>

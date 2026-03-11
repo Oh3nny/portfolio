@@ -13,6 +13,7 @@ interface ChatInputProps {
   onSend: (message: string) => void;
   disabled: boolean;
   fullScreen?: boolean;
+  mobileLayout?: boolean;
 }
 
 const EMOJI_OPTIONS = [
@@ -60,6 +61,7 @@ export default function ChatInput({
   onSend,
   disabled,
   fullScreen = false,
+  mobileLayout = false,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
@@ -222,12 +224,12 @@ export default function ChatInput({
       ref={shellRef}
       className="absolute flex items-center"
       style={{
-        left: 19.72,
-        bottom: 20.24,
-        right: fullScreen ? 19.72 : undefined,
+        left: mobileLayout ? 14 : 19.72,
+        bottom: mobileLayout ? "max(16px, env(safe-area-inset-bottom))" : 20.24,
+        right: fullScreen ? (mobileLayout ? 14 : 19.72) : undefined,
         width: fullScreen ? undefined : 719.14,
         height: 27.43,
-        gap: 12.19,
+        gap: mobileLayout ? 10 : 12.19,
       }}
     >
       <input

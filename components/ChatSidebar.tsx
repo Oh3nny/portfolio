@@ -7,6 +7,7 @@ import { CHAT_ASSETS } from "@/lib/chat";
 interface ChatSidebarProps {
   onClose?: () => void;
   fullScreen?: boolean;
+  mobileLayout?: boolean;
   previewMessage: string;
   timeLabel: string;
   isThinking: boolean;
@@ -17,13 +18,20 @@ interface ChatSidebarProps {
 export default function ChatSidebar({
   onClose,
   fullScreen = false,
+  mobileLayout = false,
   previewMessage,
   timeLabel,
   isThinking,
   searchQuery,
   onSearchQueryChange,
 }: ChatSidebarProps) {
-  const centeredWidth = fullScreen ? "calc(100% - 35.32px)" : 253.68;
+  const centeredWidth = fullScreen
+    ? mobileLayout
+      ? "calc(100% - 32px)"
+      : "calc(100% - 35.32px)"
+    : 253.68;
+  const topPosition = (value: number) =>
+    mobileLayout ? `calc(env(safe-area-inset-top) + ${value}px)` : value;
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     onSearchQueryChange(event.target.value);
   };
@@ -49,7 +57,12 @@ export default function ChatSidebar({
       <div className="chat-sidebar-content h-full w-full">
         <div
           className="absolute"
-          style={{ left: 26.66, top: 25.14, width: 46.47, height: 10.67 }}
+          style={{
+            left: mobileLayout ? 20 : 26.66,
+            top: topPosition(mobileLayout ? 18 : 25.14),
+            width: 46.47,
+            height: 10.67,
+          }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -71,7 +84,7 @@ export default function ChatSidebar({
           className="absolute flex items-center"
           style={{
             left: "50%",
-            top: 52.56,
+            top: topPosition(mobileLayout ? 44 : 52.56),
             transform: "translateX(-50%)",
             width: centeredWidth,
             height: 23.62,
@@ -119,7 +132,7 @@ export default function ChatSidebar({
           className="absolute"
           style={{
             left: "50%",
-            top: 90.65,
+            top: topPosition(mobileLayout ? 82 : 90.65),
             transform: "translateX(-50%)",
             width: centeredWidth,
             height: 67.8,
@@ -132,7 +145,7 @@ export default function ChatSidebar({
           className="absolute flex items-center"
           style={{
             left: "50%",
-            top: 103.61,
+            top: topPosition(mobileLayout ? 95 : 103.61),
             transform: "translateX(-50%)",
             width: fullScreen ? "calc(100% - 58.22px)" : 231.6,
             gap: 10.67,

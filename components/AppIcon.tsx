@@ -67,7 +67,7 @@ export default function AppIcon({
       <button
         type="button"
         onClick={onClick}
-        className="flex flex-col items-center gap-2 group"
+        className="group flex min-w-0 flex-col items-center gap-2 text-center touch-manipulation"
       >
         {content}
       </button>
@@ -75,7 +75,10 @@ export default function AppIcon({
   }
 
   return (
-    <Link href={href} className="flex flex-col items-center gap-2 group">
+    <Link
+      href={href}
+      className="group flex min-w-0 flex-col items-center gap-2 text-center touch-manipulation"
+    >
       {content}
     </Link>
   );

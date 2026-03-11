@@ -18,6 +18,7 @@ interface ChatMessagesProps {
   messages: Message[];
   showTypingBubble: boolean;
   fullScreen?: boolean;
+  mobileLayout?: boolean;
   dayTimeLabel: string;
   searchQuery: string;
 }
@@ -26,6 +27,7 @@ export default function ChatMessages({
   messages,
   showTypingBubble,
   fullScreen = false,
+  mobileLayout = false,
   dayTimeLabel,
   searchQuery,
 }: ChatMessagesProps) {
@@ -119,7 +121,11 @@ export default function ChatMessages({
             style={{
               left: "50%",
               top: fullScreen ? undefined : 553.17,
-              bottom: fullScreen ? 205.93 : undefined,
+              bottom: fullScreen
+                ? mobileLayout
+                  ? "calc(env(safe-area-inset-bottom) + 182px)"
+                  : 205.93
+                : undefined,
               transform: "translateX(-50%)",
               color: "#7A7979",
               fontSize: 9.903,
@@ -134,7 +140,11 @@ export default function ChatMessages({
             style={{
               ...messageViewportStyle,
               top: fullScreen ? undefined : 620.2,
-              bottom: fullScreen ? 116.04 : undefined,
+              bottom: fullScreen
+                ? mobileLayout
+                  ? "calc(env(safe-area-inset-bottom) + 96px)"
+                  : 116.04
+                : undefined,
             }}
           >
             <div className="chat-message-row chat-message-row--assistant">
@@ -154,7 +164,11 @@ export default function ChatMessages({
             top: 148,
             width: fullScreen ? undefined : 751.56,
             height: fullScreen ? undefined : 543,
-            bottom: fullScreen ? 63 : undefined,
+            bottom: fullScreen
+              ? mobileLayout
+                ? "calc(env(safe-area-inset-bottom) + 72px)"
+                : 63
+              : undefined,
             paddingBottom: 4,
             paddingRight: 4,
           }}

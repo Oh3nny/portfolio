@@ -21,21 +21,25 @@ export default function Home() {
 
   return (
     <main
-      className="relative h-screen w-screen overflow-hidden"
-      style={{ background: "#1A1A1A" }}
+      className="relative w-full overflow-x-hidden overflow-y-auto"
+      style={{ minHeight: "100dvh", background: "#1A1A1A" }}
     >
       <div
-        className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-16"
+        className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center gap-10 md:gap-16"
         style={{
           pointerEvents: chatOpen ? "none" : "auto",
+          paddingTop: "max(32px, env(safe-area-inset-top))",
+          paddingRight: "max(24px, env(safe-area-inset-right))",
+          paddingBottom: "max(32px, env(safe-area-inset-bottom))",
+          paddingLeft: "max(24px, env(safe-area-inset-left))",
         }}
       >
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 text-center">
           <ProfileIcon />
-          <span className="text-[15px] text-white">@im_oaa</span>
+          <span className="text-[14px] text-white md:text-[15px]">@im_oaa</span>
         </div>
 
-        <div className="flex items-end gap-16 md:gap-24">
+        <div className="grid w-full max-w-[420px] grid-cols-2 justify-items-center gap-x-8 gap-y-10 sm:max-w-[480px] sm:gap-x-10 md:flex md:max-w-none md:items-end md:gap-16 lg:gap-24">
           <AppIcon
             icon="/icons/folder-work.svg"
             label="work"
