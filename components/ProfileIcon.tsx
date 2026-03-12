@@ -17,7 +17,7 @@ export default function ProfileIcon() {
   const canAnimateVideo = !prefersReducedMotion;
   const shouldAutoPlay = canAnimateVideo && prefersDirectTap;
   const shouldPlayOnHover = canAnimateVideo && supportsHover && isActive;
-  const showVideo = hasLoaded && (shouldAutoPlay || shouldPlayOnHover);
+  const showVideo = shouldAutoPlay || (hasLoaded && shouldPlayOnHover);
 
   useEffect(() => {
     const hoverMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -65,14 +65,7 @@ export default function ProfileIcon() {
   useEffect(() => {
     const video = videoRef.current;
 
-    if (!video || !hasLoaded) {
-      return;
-    }
-
-    if (!shouldAutoPlay && !shouldPlayOnHover) {
-      video.pause();
-      video.currentTime = 0;
-      hasRandomizedStartRef.current = false;
+    if (!video) {
       return;
     }
 
@@ -81,9 +74,30 @@ export default function ProfileIcon() {
         video.currentTime = Math.random() * Math.max(video.duration - 1, 0);
         hasRandomizedStartRef.current = true;
       }
-    } else {
-      video.currentTime = 0;
+
+      const playPromise = video.play();
+
+      if (typeof playPromise?.catch === "function") {
+        playPromise.catch(() => {
+          return;
+        });
+      }
+
+      return;
     }
+
+    if (!hasLoaded) {
+      return;
+    }
+
+    if (!shouldPlayOnHover) {
+      video.pause();
+      video.currentTime = 0;
+      hasRandomizedStartRef.current = false;
+      return;
+    }
+
+    video.currentTime = 0;
 
     const playPromise = video.play();
 
@@ -199,15 +213,21 @@ export default function ProfileIcon() {
         }`}
       />
       <video
-        ref={videoRef}
+        ref={(node) => {
+          videoRef.current = node;
+
+          if (node) {
+            node.defaultMuted = true;
+          }
+        }}
         src={PROFILE_VIDEO_SOURCE}
         poster="/profile.png"
         muted
         loop
         playsInline
-        autoPlay={prefersDirectTap}
+        autoPlay={canAnimateVideo}
         preload="auto"
-        onCanPlay={() => {
+        onLoadedData={() => {
           setHasLoaded(true);
         }}
         className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
