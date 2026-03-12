@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { IOS_APP_ICON_MASK_STYLE } from "@/lib/iosIcon";
 
@@ -15,9 +15,9 @@ export default function ProfileIcon() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const canAnimateVideo = !prefersReducedMotion;
-  const shouldAutoPlay = canAnimateVideo && !prefersDirectTap;
-  const shouldPlayOnTap = canAnimateVideo && prefersDirectTap && isActive;
-  const showVideo = hasLoaded && (shouldAutoPlay || shouldPlayOnTap);
+  const shouldAutoPlay = canAnimateVideo && prefersDirectTap;
+  const shouldPlayOnHover = canAnimateVideo && supportsHover && isActive;
+  const showVideo = hasLoaded && (shouldAutoPlay || shouldPlayOnHover);
 
   useEffect(() => {
     const hoverMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -65,15 +65,11 @@ export default function ProfileIcon() {
   useEffect(() => {
     const video = videoRef.current;
 
-    if (!video) {
+    if (!video || !hasLoaded) {
       return;
     }
 
-    if (!hasLoaded) {
-      return;
-    }
-
-    if (!shouldAutoPlay && !shouldPlayOnTap) {
+    if (!shouldAutoPlay && !shouldPlayOnHover) {
       video.pause();
       video.currentTime = 0;
       hasRandomizedStartRef.current = false;
@@ -96,14 +92,43 @@ export default function ProfileIcon() {
         return;
       });
     }
-  }, [hasLoaded, shouldAutoPlay, shouldPlayOnTap]);
+  }, [hasLoaded, shouldAutoPlay, shouldPlayOnHover]);
+
+  const handlePointerEnter = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch" || !canAnimateVideo || prefersDirectTap) {
+      return;
+    }
+
+    setIsActive(true);
+  };
+
+  const handlePointerLeave = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch" || prefersDirectTap) {
+      return;
+    }
+
+    setIsActive(false);
+  };
 
   const handleTap = () => {
     if (!canAnimateVideo || !prefersDirectTap) {
       return;
     }
 
-    setIsActive((currentState) => !currentState);
+    const video = videoRef.current;
+
+    if (!video || !hasLoaded) {
+      return;
+    }
+
+    video.currentTime = 0;
+    const playPromise = video.play();
+
+    if (typeof playPromise?.catch === "function") {
+      playPromise.catch(() => {
+        return;
+      });
+    }
   };
 
   const shellVariants: Variants = prefersReducedMotion
@@ -146,7 +171,7 @@ export default function ProfileIcon() {
         damping: 28,
         mass: 0.9,
       }}
-      className="relative cursor-pointer"
+      className={`relative ${prefersDirectTap ? "cursor-pointer" : "cursor-default"}`}
       style={{
         width: "clamp(78px, 24vw, 87px)",
         height: "clamp(78px, 24vw, 87px)",
@@ -157,7 +182,9 @@ export default function ProfileIcon() {
       }}
       aria-label="Portrait of Ohenny"
       tabIndex={0}
-      onFocus={prefersDirectTap && canAnimateVideo ? () => setIsActive(true) : undefined}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+      onFocus={!prefersDirectTap && canAnimateVideo ? () => setIsActive(true) : undefined}
       onBlur={() => setIsActive(false)}
       onClick={handleTap}
     >
@@ -178,11 +205,12 @@ export default function ProfileIcon() {
         muted
         loop
         playsInline
+        autoPlay={prefersDirectTap}
         preload="auto"
         onCanPlay={() => {
           setHasLoaded(true);
         }}
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-200 ${
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
           showVideo ? "opacity-100" : "opacity-0"
         }`}
       />
