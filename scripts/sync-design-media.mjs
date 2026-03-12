@@ -1,7 +1,8 @@
-import { access, cp, mkdir, readdir, rm } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { randomInt } from "node:crypto";
 import { createRequire } from "node:module";
+import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -18,6 +19,7 @@ const LEGACY_PROFILE_ALT_TARGET = path.join(process.cwd(), "public", "profile-ho
 const PROFILE_SEQUENCE_REPEATS = 2;
 const PROFILE_SEQUENCE_FADE_SECONDS = 0.2;
 const PROFILE_SEQUENCE_SIZE = 480;
+const IS_VERCEL_BUILD = process.env.VERCEL === "1";
 const SUPPORTED_EXTENSIONS = new Set([
   ".avif",
   ".gif",
@@ -155,32 +157,15 @@ function buildRandomProfileSequence(sources) {
 }
 
 async function renderSingleProfileSequence(sourcePath) {
-  await execFileAsync(ffmpegPath, [
-    "-y",
-    "-i",
-    sourcePath,
-    "-an",
-    "-vf",
-    `scale=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE}:force_original_aspect_ratio=increase,crop=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE},fps=30,format=yuv420p,setsar=1`,
-    "-c:v",
-    "libx264",
-    "-crf",
-    "26",
-    "-preset",
-    "veryfast",
-    "-pix_fmt",
-    "yuv420p",
-    "-movflags",
-    "+faststart",
-    PROFILE_SEQUENCE_TARGET,
-  ]);
+  await cp(sourcePath, PROFILE_SEQUENCE_TARGET, {
+    force: true,
+  });
 }
 
 async function renderMultiClipProfileSequence(sequenceSources) {
   const durations = await Promise.all(sequenceSources.map((source) => getVideoDurationSeconds(source)));
   const filterParts = sequenceSources.map(
-    (_, index) =>
-      `[${index}:v]scale=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE}:force_original_aspect_ratio=increase,crop=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE},fps=30,format=yuv420p,setsar=1,setpts=PTS-STARTPTS[v${index}]`,
+    (_, index) => `[${index}:v]settb=AVTB,setpts=PTS-STARTPTS[v${index}]`,
   );
   let previousLabel = "v0";
   let nextOffset = Math.max(durations[0] - PROFILE_SEQUENCE_FADE_SECONDS, 0);
@@ -217,8 +202,34 @@ async function renderMultiClipProfileSequence(sequenceSources) {
   ]);
 }
 
+async function normalizeProfileVideoSource(sourcePath, targetPath) {
+  await execFileAsync(ffmpegPath, [
+    "-y",
+    "-i",
+    sourcePath,
+    "-an",
+    "-vf",
+    `scale=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE}:force_original_aspect_ratio=increase,crop=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE},fps=30,format=yuv420p,setsar=1`,
+    "-c:v",
+    "libx264",
+    "-crf",
+    "26",
+    "-preset",
+    "veryfast",
+    "-pix_fmt",
+    "yuv420p",
+    "-movflags",
+    "+faststart",
+    targetPath,
+  ]);
+}
+
 async function syncProfileHoverSequence() {
   await rm(LEGACY_PROFILE_ALT_TARGET, { force: true });
+
+  if (IS_VERCEL_BUILD && (await fileExists(PROFILE_SEQUENCE_TARGET))) {
+    return;
+  }
 
   const profileVideoSources = await getProfileVideoSources();
 
@@ -234,14 +245,29 @@ async function syncProfileHoverSequence() {
     return;
   }
 
-  const sequenceSources = buildRandomProfileSequence(profileVideoSources);
+  const normalizedDirectory = await mkdtemp(path.join(os.tmpdir(), "profile-sequence-"));
 
-  if (sequenceSources.length === 1) {
-    await renderSingleProfileSequence(sequenceSources[0]);
-    return;
+  try {
+    const normalizedProfileSources = await Promise.all(
+      profileVideoSources.map(async (sourcePath, index) => {
+        const normalizedPath = path.join(normalizedDirectory, `clip-${index}.mp4`);
+
+        await normalizeProfileVideoSource(sourcePath, normalizedPath);
+
+        return normalizedPath;
+      }),
+    );
+    const sequenceSources = buildRandomProfileSequence(normalizedProfileSources);
+
+    if (sequenceSources.length === 1) {
+      await renderSingleProfileSequence(sequenceSources[0]);
+      return;
+    }
+
+    await renderMultiClipProfileSequence(sequenceSources);
+  } finally {
+    await rm(normalizedDirectory, { recursive: true, force: true });
   }
-
-  await renderMultiClipProfileSequence(sequenceSources);
 }
 
 await syncDesignMedia();
