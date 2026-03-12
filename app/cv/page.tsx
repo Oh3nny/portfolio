@@ -60,9 +60,11 @@ export default function CvPage() {
           </p>
         </div>
 
-        <div className="mt-20 h-px w-full bg-white/10" />
+        <div className="py-24">
+          <div className="h-px w-full bg-white/10" />
+        </div>
 
-        <section className="mt-20 flex flex-col gap-8">
+        <section className="flex flex-col gap-8">
           {SKILL_SECTIONS.map((section) => (
             <div
               key={section.title}
