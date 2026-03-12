@@ -108,7 +108,7 @@ export default async function PlayPage() {
 
   return (
     <main
-      className="w-full px-6 text-white"
+      className="relative w-full px-6 text-white"
       style={{
         minHeight: "100dvh",
         background: "#1a1a1a",
@@ -118,47 +118,54 @@ export default async function PlayPage() {
         paddingLeft: "max(24px, env(safe-area-inset-left))",
       }}
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
-        <div className="flex flex-col gap-4 text-left">
-          <Link
-            href="/"
-            className="w-fit text-[13px] text-[#bdbdbd] transition-all hover:text-white hover:underline"
-          >
-            ← back
-          </Link>
-          <div className="flex flex-col gap-2">
-            <h1 className="text-[32px] font-semibold tracking-[-0.04em] text-white">
+      <Link
+        href="/"
+        className="absolute text-[13px] text-[#bdbdbd] transition-all hover:text-white hover:underline"
+        style={{
+          left: "max(24px, env(safe-area-inset-left))",
+          top: "max(24px, env(safe-area-inset-top))",
+        }}
+      >
+        ← back
+      </Link>
+
+      <div className="mx-auto flex w-full max-w-[1440px] justify-center">
+        <div className="flex w-full flex-col items-center gap-10 xl:flex-row xl:items-center xl:justify-center xl:gap-16">
+          <div className="flex w-full max-w-[320px] flex-none flex-col items-center justify-center gap-4 text-center xl:min-h-[60vh]">
+            <div className="flex flex-col items-center gap-2">
+            <h1 className="font-mono text-[30px] tracking-[-0.04em] text-white sm:text-[34px]">
               play
             </h1>
-            <p className="max-w-2xl text-[15px] leading-6 text-[#bdbdbd]">
+            <p className="max-w-2xl text-[15px] leading-6 text-[#7f7f7f]">
               A mixed wall of work, motion, and photos pulled directly from the
               project&apos;s `designs` folder.
             </p>
           </div>
-        </div>
-
-        {hasItems ? (
-          <div className="flex w-full justify-center">
-            <section
-              className="w-full max-w-[1080px] columns-1 sm:columns-2 xl:columns-3"
-              style={{ columnGap: GALLERY_GAP }}
-            >
-              {galleryItems.map((item, index) => (
-                <MediaCard
-                  key={item.fileName}
-                  item={item}
-                  index={index}
-                />
-              ))}
-            </section>
           </div>
-        ) : (
-          <section className="rounded-[28px] border border-dashed border-white/12 bg-white/[0.03] px-6 py-12 text-center">
-            <p className="text-[15px] text-[#bdbdbd]">
-              No supported media files were found in `designs/` yet.
-            </p>
-          </section>
-        )}
+
+          {hasItems ? (
+            <div className="flex w-full max-w-[1080px] justify-center">
+              <section
+                className="w-full columns-1 sm:columns-2 xl:columns-3"
+                style={{ columnGap: GALLERY_GAP }}
+              >
+                {galleryItems.map((item, index) => (
+                  <MediaCard
+                    key={item.fileName}
+                    item={item}
+                    index={index}
+                  />
+                ))}
+              </section>
+            </div>
+          ) : (
+            <section className="w-full max-w-[1080px] rounded-[28px] border border-dashed border-white/12 bg-white/[0.03] px-6 py-12 text-center">
+              <p className="text-[15px] text-[#bdbdbd]">
+                No supported media files were found in `designs/` yet.
+              </p>
+            </section>
+          )}
+        </div>
       </div>
     </main>
   );

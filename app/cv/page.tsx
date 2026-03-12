@@ -51,7 +51,7 @@ export default function CvPage() {
       </Link>
 
       <div className="mx-auto flex w-full max-w-3xl flex-col justify-center">
-        <div className="flex flex-col gap-2 text-left">
+        <div className="flex flex-col gap-4 text-left">
           <h1 className="font-mono text-[30px] tracking-[-0.04em] text-white sm:text-[34px]">
             skills.md
           </h1>
@@ -60,9 +60,9 @@ export default function CvPage() {
           </p>
         </div>
 
-        <div className="mt-10 h-px w-full bg-white/10" />
+        <div className="mt-20 h-px w-full bg-white/10" />
 
-        <section className="mt-10 flex flex-col gap-8">
+        <section className="mt-20 flex flex-col gap-8">
           {SKILL_SECTIONS.map((section) => (
             <div
               key={section.title}
