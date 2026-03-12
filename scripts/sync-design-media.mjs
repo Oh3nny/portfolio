@@ -15,11 +15,12 @@ const TARGET_DIR = path.join(process.cwd(), "public", "designs-media");
 const PROFILE_ROOT_DIR = process.cwd();
 const PROFILE_BASE_SOURCE = path.join(process.cwd(), "public", "profile-hover.mp4");
 const PROFILE_SEQUENCE_TARGET = path.join(process.cwd(), "public", "profile-hover-sequence.mp4");
+const PROFILE_CLIPS_DIR = path.join(process.cwd(), "public", "profile-clips");
+const PROFILE_MANIFEST_DIR = path.join(process.cwd(), "lib", "generated");
 const LEGACY_PROFILE_ALT_TARGET = path.join(process.cwd(), "public", "profile-hover-alt.mp4");
-const PROFILE_SEQUENCE_REPEATS = 2;
-const PROFILE_SEQUENCE_FADE_SECONDS = 0.2;
+const PROFILE_SEQUENCE_REPEATS = 3;
+const PROFILE_SEQUENCE_FADE_SECONDS = 0.35;
 const PROFILE_SEQUENCE_SIZE = 480;
-const IS_VERCEL_BUILD = process.env.VERCEL === "1";
 const SUPPORTED_EXTENSIONS = new Set([
   ".avif",
   ".gif",
@@ -156,6 +157,28 @@ function buildRandomProfileSequence(sources) {
   return sequence;
 }
 
+async function normalizeProfileVideoSource(sourcePath, targetPath) {
+  await execFileAsync(ffmpegPath, [
+    "-y",
+    "-i",
+    sourcePath,
+    "-an",
+    "-vf",
+    `scale=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE}:force_original_aspect_ratio=increase,crop=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE},fps=30,format=yuv420p,setsar=1`,
+    "-c:v",
+    "libx264",
+    "-crf",
+    "24",
+    "-preset",
+    "veryfast",
+    "-pix_fmt",
+    "yuv420p",
+    "-movflags",
+    "+faststart",
+    targetPath,
+  ]);
+}
+
 async function renderSingleProfileSequence(sourcePath) {
   await cp(sourcePath, PROFILE_SEQUENCE_TARGET, {
     force: true,
@@ -165,7 +188,8 @@ async function renderSingleProfileSequence(sourcePath) {
 async function renderMultiClipProfileSequence(sequenceSources) {
   const durations = await Promise.all(sequenceSources.map((source) => getVideoDurationSeconds(source)));
   const filterParts = sequenceSources.map(
-    (_, index) => `[${index}:v]settb=AVTB,setpts=PTS-STARTPTS[v${index}]`,
+    (_, index) =>
+      `[${index}:v]fps=30,settb=1/30,setpts=N/30/TB,format=yuv420p[v${index}]`,
   );
   let previousLabel = "v0";
   let nextOffset = Math.max(durations[0] - PROFILE_SEQUENCE_FADE_SECONDS, 0);
@@ -191,7 +215,7 @@ async function renderMultiClipProfileSequence(sequenceSources) {
     "-c:v",
     "libx264",
     "-crf",
-    "26",
+    "24",
     "-preset",
     "veryfast",
     "-pix_fmt",
@@ -202,39 +226,26 @@ async function renderMultiClipProfileSequence(sequenceSources) {
   ]);
 }
 
-async function normalizeProfileVideoSource(sourcePath, targetPath) {
-  await execFileAsync(ffmpegPath, [
-    "-y",
-    "-i",
-    sourcePath,
-    "-an",
-    "-vf",
-    `scale=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE}:force_original_aspect_ratio=increase,crop=${PROFILE_SEQUENCE_SIZE}:${PROFILE_SEQUENCE_SIZE},fps=30,format=yuv420p,setsar=1`,
-    "-c:v",
-    "libx264",
-    "-crf",
-    "26",
-    "-preset",
-    "veryfast",
-    "-pix_fmt",
-    "yuv420p",
-    "-movflags",
-    "+faststart",
-    targetPath,
-  ]);
-}
-
-async function syncProfileHoverSequence() {
+async function syncProfileSequence() {
   await rm(LEGACY_PROFILE_ALT_TARGET, { force: true });
-
-  if (IS_VERCEL_BUILD && (await fileExists(PROFILE_SEQUENCE_TARGET))) {
-    return;
-  }
+  await rm(PROFILE_CLIPS_DIR, { recursive: true, force: true });
+  await rm(PROFILE_MANIFEST_DIR, { recursive: true, force: true });
 
   const profileVideoSources = await getProfileVideoSources();
 
   if (!profileVideoSources.length) {
     await rm(PROFILE_SEQUENCE_TARGET, { force: true });
+    return;
+  }
+
+  if (process.env.VERCEL === "1") {
+    if (await fileExists(PROFILE_SEQUENCE_TARGET)) {
+      return;
+    }
+
+    await cp(profileVideoSources[0], PROFILE_SEQUENCE_TARGET, {
+      force: true,
+    });
     return;
   }
 
@@ -271,4 +282,4 @@ async function syncProfileHoverSequence() {
 }
 
 await syncDesignMedia();
-await syncProfileHoverSequence();
+await syncProfileSequence();

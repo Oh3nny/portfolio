@@ -3,7 +3,7 @@ import Link from "next/link";
 const SKILL_SECTIONS = [
   {
     title: "Design",
-    items: ["Figma", "Photoshop", "Illustrator", "InDesign"],
+    items: ["Figma", "Miro", "Photoshop", "Illustrator", "InDesign"],
   },
   {
     title: "Video",
