@@ -62,7 +62,7 @@ I swapped the built environment for the digital one. And this time, I'm exactly 
 
 ## Where I'm From
 
-I live in the UK now, but I was brought up in Ghana and moved to the UK when I was seven years old. That mix of cultures has shaped a lot of how I see the world — it gave me one foundation early on, then a completely different environment to grow into after moving.
+I live in Glasgow now, and I've lived there the whole time since moving to the UK at seven years old. Before that, I was brought up in Ghana. That mix of cultures has shaped a lot of how I see the world — it gave me one foundation early on, then a completely different environment to grow into after moving.
 
 Being Ghanaian and growing up between those two contexts has given me a strong sense of identity, but also a kind of adaptability. I think it made me observant from early on — noticing differences in people, environment, pace, and culture in a way that sticks with you.
 

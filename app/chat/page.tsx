@@ -12,7 +12,7 @@ export default function ChatPage() {
         backgroundImage: `url(${CHAT_ASSETS.background})`,
       }}
     >
-      <ChatDesktop />
+      <ChatDesktop uiScale={1.08} />
     </main>
   );
 }

@@ -14,6 +14,7 @@ interface ChatInputProps {
   disabled: boolean;
   fullScreen?: boolean;
   mobileLayout?: boolean;
+  uiScale?: number;
 }
 
 const EMOJI_OPTIONS = [
@@ -62,6 +63,7 @@ export default function ChatInput({
   disabled,
   fullScreen = false,
   mobileLayout = false,
+  uiScale = 1,
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
@@ -219,17 +221,29 @@ export default function ChatInput({
     focusInput();
   };
 
+  const scaleBy = (value: number) => Number((value * uiScale).toFixed(3));
+  const actionButtonSize = mobileLayout ? scaleBy(34) : scaleBy(27.43);
+  const actionArtworkSize = scaleBy(27.43);
+  const inputHeight = mobileLayout ? scaleBy(31) : scaleBy(26.66);
+  const inputFontSize = mobileLayout ? scaleBy(16) : scaleBy(11.462);
+
   return (
     <div
       ref={shellRef}
       className="absolute flex items-center"
       style={{
-        left: mobileLayout ? 14 : 19.72,
-        bottom: mobileLayout ? "max(16px, env(safe-area-inset-bottom))" : 20.24,
-        right: fullScreen ? (mobileLayout ? 14 : 19.72) : undefined,
+        left: mobileLayout ? scaleBy(12) : scaleBy(19.72),
+        bottom: mobileLayout
+          ? `max(${scaleBy(12)}px, env(safe-area-inset-bottom))`
+          : scaleBy(20.24),
+        right: fullScreen
+          ? mobileLayout
+            ? scaleBy(12)
+            : scaleBy(19.72)
+          : undefined,
         width: fullScreen ? undefined : 719.14,
-        height: 27.43,
-        gap: mobileLayout ? 10 : 12.19,
+        height: actionButtonSize,
+        gap: mobileLayout ? scaleBy(7) : scaleBy(12.19),
       }}
     >
       <input
@@ -257,17 +271,22 @@ export default function ChatInput({
         tabIndex={-1}
       />
 
-      <div className="relative" style={{ width: 27.43, height: 27.43 }}>
+      <div
+        className="relative"
+        style={{ width: actionButtonSize, height: actionButtonSize }}
+      >
         {isAttachmentMenuOpen ? (
           <div
             className="chat-input-popover"
             style={{
               position: "absolute",
               left: 0,
-              bottom: "calc(100% + 12px)",
-              width: 184,
-              padding: 8,
-              borderRadius: 18,
+              bottom: `calc(100% + ${scaleBy(10)}px)`,
+              width: mobileLayout
+                ? `min(${scaleBy(184)}px, calc(100vw - ${scaleBy(28)}px))`
+                : scaleBy(184),
+              padding: scaleBy(8),
+              borderRadius: scaleBy(18),
               transformOrigin: "bottom left",
             }}
           >
@@ -300,15 +319,22 @@ export default function ChatInput({
           aria-label="Open attachment options"
           aria-haspopup="menu"
           aria-expanded={isAttachmentMenuOpen}
-          className="cursor-pointer transition-opacity duration-200 hover:opacity-85 disabled:cursor-default disabled:opacity-70"
-          style={{ width: 27.43, height: 27.43 }}
+          className="relative cursor-pointer touch-manipulation transition-opacity duration-200 hover:opacity-85 disabled:cursor-default disabled:opacity-70"
+          style={{ width: actionButtonSize, height: actionButtonSize }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={CHAT_ASSETS.addButton}
             alt=""
             aria-hidden="true"
-            className="block h-full w-full"
+            className="absolute"
+            style={{
+              left: "50%",
+              top: "50%",
+              width: actionArtworkSize,
+              height: actionArtworkSize,
+              transform: "translate(-50%, -50%)",
+            }}
           />
         </button>
       </div>
@@ -316,11 +342,11 @@ export default function ChatInput({
       <div
         className="relative flex items-center"
         style={{
-          width: fullScreen ? undefined : 639.92,
+          width: fullScreen ? undefined : scaleBy(639.92),
           flex: 1,
-          height: 26.66,
-          borderRadius: 27.04,
-          border: "0.762px solid #606060",
+          height: inputHeight,
+          borderRadius: mobileLayout ? scaleBy(18) : scaleBy(27.04),
+          border: `${scaleBy(0.762)}px solid #606060`,
           background: "rgba(33, 33, 33, 0.2)",
         }}
       >
@@ -331,30 +357,36 @@ export default function ChatInput({
           maxLength={CHAT_MAX_MESSAGE_LENGTH}
           disabled={disabled}
           placeholder="chat"
+          enterKeyHint="send"
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
           className="h-full w-full bg-transparent outline-none placeholder:text-[rgba(91,89,89,0.72)]"
           style={{
-            paddingLeft: 14.3,
-            paddingRight: 14.3,
+            paddingLeft: mobileLayout ? scaleBy(14) : scaleBy(14.3),
+            paddingRight: mobileLayout ? scaleBy(14) : scaleBy(14.3),
             color: "#FFF",
-            fontSize: 11.462,
+            fontSize: inputFontSize,
             lineHeight: "normal",
           }}
         />
       </div>
 
-      <div className="relative" style={{ width: 27.43, height: 27.43 }}>
+      <div
+        className="relative"
+        style={{ width: actionButtonSize, height: actionButtonSize }}
+      >
         {isEmojiPickerOpen ? (
           <div
             className="chat-input-popover"
             style={{
               position: "absolute",
               right: 0,
-              bottom: "calc(100% + 12px)",
-              width: 232,
-              padding: 10,
-              borderRadius: 20,
+              bottom: `calc(100% + ${scaleBy(10)}px)`,
+              width: mobileLayout
+                ? `min(${scaleBy(232)}px, calc(100vw - ${scaleBy(28)}px))`
+                : scaleBy(232),
+              padding: scaleBy(10),
+              borderRadius: scaleBy(20),
               transformOrigin: "bottom right",
             }}
           >
@@ -362,7 +394,7 @@ export default function ChatInput({
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gap: 8,
+                gap: scaleBy(8),
               }}
             >
               {EMOJI_OPTIONS.map((emoji) => (
@@ -387,15 +419,22 @@ export default function ChatInput({
           aria-label="Open emoji picker"
           aria-haspopup="menu"
           aria-expanded={isEmojiPickerOpen}
-          className="relative cursor-pointer transition-opacity duration-200 hover:opacity-85 disabled:cursor-default disabled:opacity-70"
-          style={{ width: 27.43, height: 27.43 }}
+          className="relative cursor-pointer touch-manipulation transition-opacity duration-200 hover:opacity-85 disabled:cursor-default disabled:opacity-70"
+          style={{ width: actionButtonSize, height: actionButtonSize }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={CHAT_ASSETS.actionButton}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full"
+            className="absolute"
+            style={{
+              left: "50%",
+              top: "50%",
+              width: actionArtworkSize,
+              height: actionArtworkSize,
+              transform: "translate(-50%, -50%)",
+            }}
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -406,8 +445,8 @@ export default function ChatInput({
             style={{
               left: "50%",
               top: "50%",
-              width: 12.06,
-              height: 12.06,
+              width: scaleBy(12.06),
+              height: scaleBy(12.06),
               transform: "translate(-50%, -50%) scaleY(-1)",
             }}
           />

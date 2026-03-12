@@ -21,11 +21,13 @@ const MAX_TYPING_STATE_MS = 1800;
 interface ChatWindowProps {
   onClose?: () => void;
   fullScreen?: boolean;
+  uiScale?: number;
 }
 
 export default function ChatWindow({
   onClose,
   fullScreen = false,
+  uiScale = 1,
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -60,11 +62,14 @@ export default function ChatWindow({
   const sidebarTimeLabel = hasActiveSearch
     ? `${searchMatchCount} ${searchMatchCount === 1 ? "hit" : "hits"}`
     : timeLabel;
+  const scaleBy = (value: number) => Number((value * uiScale).toFixed(3));
 
   useEffect(() => {
     if (fullScreen) {
       const updateLayoutMode = () => {
-        setIsMobileLayout(window.innerWidth < 768);
+        setIsMobileLayout(
+          Math.min(window.innerWidth, window.innerHeight) < 768
+        );
       };
 
       updateLayoutMode();
@@ -184,32 +189,37 @@ export default function ChatWindow({
     }
   };
 
-  const mobileSidebarHeight = "176px";
+  const mobileSidebarHeight = `calc(${scaleBy(176)}px + env(safe-area-inset-top))`;
+  const mobilePanelInset = scaleBy(12);
+  const mobilePanelTop = `max(${mobilePanelInset}px, env(safe-area-inset-top))`;
+  const showMobileMinimalLayout = fullScreen && isMobileLayout;
+  const showMobileThinkingGlow = showMobileMinimalLayout && showTypingState;
+  const showMobileCloseButton = showMobileMinimalLayout && Boolean(onClose);
   const fullScreenSidebarWidth = isMobileLayout
     ? "100%"
     : "clamp(180px, 26.35vw, 289px)";
   const contentLeft = fullScreen
     ? isMobileLayout
-      ? 0
+      ? mobilePanelInset
       : "clamp(180px, 26.35vw, 289px)"
     : 301;
   const contentTop = fullScreen
     ? isMobileLayout
-      ? mobileSidebarHeight
+      ? mobilePanelTop
       : 0
     : CHAT_WINDOW.padding;
   const contentWidth = fullScreen
     ? isMobileLayout
-      ? "100%"
+      ? `calc(100% - ${mobilePanelInset * 2}px)`
       : "calc(100vw - clamp(180px, 26.35vw, 289px))"
     : CHAT_WINDOW.contentWidth;
   const contentHeight = fullScreen
     ? isMobileLayout
-      ? `calc(100% - ${mobileSidebarHeight})`
+      ? `calc(100% - ${mobilePanelInset * 2}px - env(safe-area-inset-top) - env(safe-area-inset-bottom))`
       : "100%"
     : CHAT_WINDOW.contentHeight;
   const contentBorderRadius = isMobileLayout
-    ? "24px 24px 0 0"
+    ? scaleBy(30)
     : fullScreen
       ? 0
       : 23;
@@ -218,13 +228,20 @@ export default function ChatWindow({
     <div
       className="relative"
       style={{
-        width: fullScreen ? "100vw" : CHAT_WINDOW.width,
-        height: fullScreen ? "100dvh" : CHAT_WINDOW.height,
+        ["--chat-ui-scale" as string]: uiScale,
+        width: fullScreen ? "100%" : CHAT_WINDOW.width,
+        height: fullScreen ? "100%" : CHAT_WINDOW.height,
         borderRadius: fullScreen ? 0 : 26.5,
       }}
     >
       <section
-        className={`relative h-full w-full overflow-hidden ${fullScreen ? "flex" : ""}`}
+        className={`chat-window-shell relative h-full w-full overflow-hidden ${
+          fullScreen ? "flex" : ""
+        } ${
+          showMobileThinkingGlow
+            ? "chat-window-shell--thinking chat-window-shell--mobile-thinking"
+            : ""
+        }`}
         style={{
           borderRadius: "inherit",
           background: "rgba(26, 26, 26, 0.2)",
@@ -234,30 +251,33 @@ export default function ChatWindow({
           boxShadow: fullScreen ? "none" : "0px 4px 4px rgba(0, 0, 0, 0.25)",
         }}
       >
-        <div
-          className="absolute"
-          style={{
-            left: fullScreen ? 0 : CHAT_WINDOW.padding,
-            top: fullScreen ? 0 : CHAT_WINDOW.padding,
-            width: fullScreen ? fullScreenSidebarWidth : CHAT_WINDOW.sidebarWidth,
-            height: fullScreen
-              ? isMobileLayout
-                ? mobileSidebarHeight
-                : "100%"
-              : CHAT_WINDOW.sidebarHeight,
-          }}
-        >
-          <ChatSidebar
-            onClose={onClose}
-            fullScreen={fullScreen}
-            mobileLayout={isMobileLayout}
-            previewMessage={sidebarPreviewMessage}
-            timeLabel={sidebarTimeLabel}
-            isThinking={showTypingState}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-          />
-        </div>
+        {!showMobileMinimalLayout ? (
+          <div
+            className="absolute"
+            style={{
+              left: fullScreen ? 0 : CHAT_WINDOW.padding,
+              top: fullScreen ? 0 : CHAT_WINDOW.padding,
+              width: fullScreen ? fullScreenSidebarWidth : CHAT_WINDOW.sidebarWidth,
+              height: fullScreen
+                ? isMobileLayout
+                  ? mobileSidebarHeight
+                  : "100%"
+                : CHAT_WINDOW.sidebarHeight,
+            }}
+          >
+            <ChatSidebar
+              onClose={onClose}
+              fullScreen={fullScreen}
+              mobileLayout={isMobileLayout}
+              uiScale={uiScale}
+              previewMessage={sidebarPreviewMessage}
+              timeLabel={sidebarTimeLabel}
+              isThinking={showTypingState}
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+            />
+          </div>
+        ) : null}
 
         <div
           className="absolute overflow-hidden"
@@ -267,23 +287,84 @@ export default function ChatWindow({
             width: contentWidth,
             height: contentHeight,
             borderRadius: contentBorderRadius,
-            background: "#1A1A1A",
+            border: showMobileMinimalLayout
+              ? "0.762px solid rgba(213, 213, 213, 0.18)"
+              : undefined,
+            backgroundColor: showMobileMinimalLayout
+              ? showMobileThinkingGlow
+                ? "rgba(20, 20, 20, 0.34)"
+                : "rgba(24, 24, 24, 0.62)"
+              : "#1A1A1A",
+            backdropFilter: showMobileMinimalLayout ? "blur(40px)" : undefined,
+            WebkitBackdropFilter: showMobileMinimalLayout
+              ? "blur(40px)"
+              : undefined,
+            boxShadow: showMobileMinimalLayout
+              ? showMobileThinkingGlow
+                ? "0 24px 56px rgba(0, 0, 0, 0.38)"
+                : "0 18px 40px rgba(0, 0, 0, 0.32)"
+              : undefined,
+            transition:
+              "background-color 760ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 760ms cubic-bezier(0.22, 1, 0.36, 1)",
           }}
         >
-          <ChatMessages
-            messages={messages}
-            showTypingBubble={showTypingState}
-            fullScreen={fullScreen}
-            mobileLayout={isMobileLayout}
-            dayTimeLabel={dayTimeLabel}
-            searchQuery={deferredSearchQuery}
-          />
-          <ChatInput
-            onSend={handleSend}
-            disabled={isLoading}
-            fullScreen={fullScreen}
-            mobileLayout={isMobileLayout}
-          />
+          <div
+            className={`chat-window-mobile-panel relative h-full w-full overflow-hidden ${
+              showMobileThinkingGlow
+                ? "chat-window-mobile-panel--thinking"
+                : ""
+            }`}
+            style={{
+              borderRadius: contentBorderRadius,
+              backgroundColor: showMobileThinkingGlow
+                ? "rgba(17, 17, 17, 0.72)"
+                : "#1A1A1A",
+            }}
+          >
+            {showMobileCloseButton ? (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close chat"
+                className="absolute z-20 flex items-center justify-center border border-white/10 bg-[rgba(18,18,18,0.74)] text-white/88 backdrop-blur-md transition-opacity duration-200 hover:opacity-85"
+                style={{
+                  left: scaleBy(16),
+                  top: scaleBy(16),
+                  width: scaleBy(40),
+                  height: scaleBy(40),
+                  borderRadius: scaleBy(999),
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    fontSize: scaleBy(22),
+                    lineHeight: 1,
+                    transform: `translateY(${-scaleBy(1)}px)`,
+                  }}
+                >
+                  ×
+                </span>
+              </button>
+            ) : null}
+
+            <ChatMessages
+              messages={messages}
+              showTypingBubble={showTypingState}
+              fullScreen={fullScreen}
+              mobileLayout={isMobileLayout}
+              dayTimeLabel={dayTimeLabel}
+              searchQuery={deferredSearchQuery}
+              uiScale={uiScale}
+            />
+            <ChatInput
+              onSend={handleSend}
+              disabled={isLoading}
+              fullScreen={fullScreen}
+              mobileLayout={isMobileLayout}
+              uiScale={uiScale}
+            />
+          </div>
         </div>
       </section>
     </div>

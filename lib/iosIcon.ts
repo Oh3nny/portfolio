@@ -11,4 +11,7 @@ export const IOS_APP_ICON_MASK_STYLE: CSSProperties = {
   maskRepeat: "no-repeat",
   WebkitMaskSize: "100% 100%",
   maskSize: "100% 100%",
+  transform: "translateZ(0)",
+  backfaceVisibility: "hidden",
+  WebkitBackfaceVisibility: "hidden",
 };

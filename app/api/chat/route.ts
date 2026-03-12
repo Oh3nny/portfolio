@@ -27,17 +27,17 @@ const MAX_REPLY_SENTENCES = 2;
 const MAX_REQUEST_SIZE_BYTES = 16_384;
 const MODERATION_REPLY =
   "i can't help with that request. ask me something about my background, work, or interests instead.";
-const OFF_TOPIC_REPLY =
-  "i'm here to talk about me, my background, tools, travel, and interests. ask me something in that lane.";
 const CHAT_PERSONA_PROMPT = [
   "You are Ohenny, chatting directly with someone on your portfolio site.",
-  "Always speak in first person as Ohenny.",
-  "Never refer to Ohenny as 'he', 'him', or 'Ohenny' when answering about yourself.",
-  "If the user asks about 'Ohenny' in third person, still answer as 'I' or 'me'.",
-  "Speak in first person and sound natural, warm, thoughtful, and lightly informal.",
+  "When talking about yourself, speak in first person as Ohenny.",
+  "Never refer to yourself as 'he', 'him', or 'Ohenny' when answering about your own life or experience.",
+  "If the user asks about 'Ohenny' in third person, still answer as 'I' or 'me' when it's about you.",
+  "For broader topics that are not about you personally, answer naturally in the same voice without forcing first-person phrasing where it sounds awkward.",
+  "Sound natural, warm, thoughtful, and lightly informal.",
   "Keep it conversational, not polished or performative.",
   "You are allowed to have normal conversation, not just answer biography questions.",
-  "If someone is just chatting, chat back like a real person and do not force it back to design, architecture, or career.",
+  "You are fully allowed to have broader conversations outside the biography or portfolio topics.",
+  "If someone is just chatting, chat back like a real person and do not force it back to design, architecture, career, or portfolio talk.",
   "For casual chat like 'how are you', 'what's up', banter, or light jokes, keep it simple and do not volunteer portfolio topics unless asked.",
   "Sound like an actual chat, not a written profile.",
   "Answer the actual question first.",
@@ -65,8 +65,11 @@ const CHAT_PERSONA_PROMPT = [
   "Style reference: instead of 'Architecture school was a mix of...', say something closer to 'it was intense, and there were bits i really liked, but i also knew it wasn't fully me.'",
   "For factual questions about my life, background, tools, or experience, stay grounded in the supplied biography facts.",
   "If the user asks whether I code, answer clearly that I do not code in the traditional sense and that I use AI tools to speed up my workflow and prototype ideas.",
-  "For casual conversation, humour, or general chat, you can answer naturally without forcing biography facts in.",
-  "If the user asks something unrelated to me, my background, work, tools, travel, or interests, briefly say you're here to chat about me and my portfolio.",
+  "If the user asks where I live or where I'm from, use the specific place named in the context when it's available.",
+  "If the user asks about school, university, or what I studied, answer with the education path in the context.",
+  "If the user asks for an exact school or university name and it is not in the context, say you do not have the institution name here, then answer with the education details you do know.",
+  "For casual conversation, humour, or general chat, answer naturally without forcing biography facts in.",
+  "For broader topics outside the biography, you can answer normally. Just do not invent personal facts about yourself.",
   "If a user asks for a specific personal fact that is not in the context, say you don't have that detail here yet.",
   "Do not invent employers, project names, dates, awards, locations, or qualifications.",
 ].join(" ");
@@ -168,8 +171,23 @@ const INTENT_RULES = [
     sections: ["Technology Finds Me Early"],
   },
   {
-    keywords: ["school", "secondary", "education", "university", "subjects"],
-    sections: ["The Creative Kid in School"],
+    keywords: [
+      "school",
+      "secondary",
+      "education",
+      "university",
+      "college",
+      "subjects",
+      "where did you go to school",
+      "where did you study",
+      "where did you go to university",
+      "what did you study",
+    ],
+    sections: [
+      "The Creative Kid in School",
+      "Architecture School: The Hard Road to Clarity",
+      "Masters, AI, and the Pivot",
+    ],
   },
   {
     keywords: ["architecture", "bachelor", "2:1", "degree", "pandemic", "critique"],
@@ -247,6 +265,10 @@ const INTENT_RULES = [
       "travel",
       "travelling",
       "traveling",
+      "travelled",
+      "traveled",
+      "where have you traveled",
+      "where have you travelled",
       "trip",
       "trips",
       "countries",
@@ -476,23 +498,6 @@ function getMatchedSectionTitlesFromContext(contextualMessage: string) {
   );
 }
 
-function isRelevantConversation(message: string, history: ChatMessage[]) {
-  const contextualMessage = getContextualMessage(message, history);
-
-  if (!contextualMessage) {
-    return true;
-  }
-
-  if (
-    isCasualConversation(contextualMessage) ||
-    includesAny(contextualMessage, ["help", "what can you answer", "what can you tell me"])
-  ) {
-    return true;
-  }
-
-  return getMatchedSectionTitlesFromContext(contextualMessage).length > 0;
-}
-
 function getContextualMessage(message: string, history: ChatMessage[]) {
   const normalizedMessage = normalizeText(message);
 
@@ -517,7 +522,17 @@ function getRelevantSectionTitles(message: string, history: ChatMessage[]) {
     return [...new Set(matchedTitles)];
   }
 
-  return ["Who I Am", "The Digital Environment"];
+  return [];
+}
+
+function shouldUseDirectReply(message: string, history: ChatMessage[]) {
+  const contextualMessage = getContextualMessage(message, history);
+
+  return includesAny(contextualMessage, [
+    "where did you go to school",
+    "where did you study",
+    "where did you go to university",
+  ]);
 }
 
 function buildKnowledgeContext(
@@ -613,6 +628,16 @@ function buildReply(message: string, history: ChatMessage[], sections: Knowledge
     return "anytime.";
   }
 
+  if (
+    includesAny(contextualMessage, [
+      "where did you go to school",
+      "where did you study",
+      "where did you go to university",
+    ])
+  ) {
+    return "i don't have the exact school names in here, but after moving to the uk i went through school there, then studied architecture and later did a master's in architecture.";
+  }
+
   const matchedRule = INTENT_RULES.find((rule) =>
     includesAny(contextualMessage, rule.keywords)
   );
@@ -625,7 +650,7 @@ function buildReply(message: string, history: ChatMessage[], sections: Knowledge
       .join("\n\n");
   }
 
-  return OFF_TOPIC_REPLY;
+  return "i'm down to talk about that.";
 }
 
 export async function POST(request: NextRequest) {
@@ -667,11 +692,14 @@ export async function POST(request: NextRequest) {
       ? history.slice(0, -1)
       : history;
 
-  if (!isRelevantConversation(message, normalizedHistory)) {
-    return createJsonResponse({ reply: OFF_TOPIC_REPLY });
-  }
-
   const knowledgeBase = await loadKnowledgeBase();
+  const directReply = shouldUseDirectReply(message, normalizedHistory)
+    ? clampReplyText(buildReply(message, normalizedHistory, knowledgeBase))
+    : "";
+
+  if (directReply) {
+    return createJsonResponse({ reply: directReply });
+  }
 
   if (!openai) {
     return createJsonResponse({
